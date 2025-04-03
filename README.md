@@ -1,66 +1,62 @@
-from flask import Flask, request, jsonify, render_template
-from transformers import pipeline
-import importlib
+---
+# AI Gardening Chatbot
 
-app = Flask(__name__)
+**AI Gardening Chatbot** is a project that seeks to create an accessible platform that advises gardening enthusiasts real-time, including plant care, gardening tips, and natural language processing and machine learning-based approach.
 
-# Function to check if PyTorch is installed
-def check_framework():
-    if not importlib.util.find_spec("torch"):
-        raise ImportError("PyTorch is not installed. Please install it using 'pip install torch'.")
+The **AI Gardening Chatbot** is a computer program that provides advice as a virtual gardening consultant, assisting customers with plant identification, pest removal, weather forecast-based gardening facts, and personalized care schedules. 
 
-# Check PyTorch and load the AI model for Q&A
-check_framework()
-qa_pipeline = pipeline('question-answering', model='distilbert-base-uncased-distilled-squad')
+---
 
-# ✅ Enhanced Gardening Knowledge Base (More Detailed Context)
-gardening_context = (
-    "Gardening involves growing plants, including flowers, vegetables, and fruit trees. "
-    "Roses require well-drained soil and at least six hours of direct sunlight daily. "
-    "Vegetable gardens need organic compost and balanced fertilizers like NPK 10-10-10. "
-    "Fruit trees should be watered deeply once a week and pruned regularly. "
-    "Composting enriches soil fertility, and crop rotation helps prevent soil depletion. "
-    "Seasonal planting enhances growth, and understanding plant compatibility reduces pests. "
-    "Tomatoes grow best in full sunlight with well-draining soil and require regular watering. "
-    "Carrots prefer loose, sandy soil with deep watering to encourage root growth. "
-    "Lettuce grows best in cooler temperatures and needs regular moisture. "
-    "Cucumbers require trellising for best growth and need frequent watering. "
-    "Potted plants need well-draining soil and should be watered when the topsoil is dry. "
-    "Mulching helps retain soil moisture and suppresses weeds. "
-    "Organic fertilizers such as composted manure and bone meal improve soil fertility. "
-    "Overwatering can cause root rot, while underwatering leads to wilting. "
-    "Pruning fruit trees in winter encourages healthy growth. "
-    "Pollinators like bees and butterflies help plants produce fruit. "
-    "Marigolds can help repel pests in vegetable gardens. "
-    "Indoor plants such as succulents need indirect sunlight and minimal watering. "
-    "Hydroponic gardening allows plants to grow without soil, using nutrient-rich water. "
-    "Gardening in raised beds helps improve soil drainage and makes weeding easier. "
-    "Companion planting, such as growing basil with tomatoes, helps improve plant health. "
-    "Drip irrigation is an efficient way to water plants while conserving water."
-)
+The AI Gardening Chatbot project has multiple interesting features which make it worth using for gardeners. They are:
+- **Interactive Chat Interface**: Ask a chat-conversational AI for all of your gardening-related questions.
 
-# List of allowed gardening-related keywords
-gardening_keywords = ["garden", "plant", "soil", "water", "sunlight", "compost", "fertilizer", 
-                      "pruning", "roses", "vegetables", "fruit", "mulch", "pollination", "seeds",
-                      "hydroponic", "irrigation", "weeds", "drainage", "pests", "indoor plants","rose","carrots"]
+- **Plant Identification**: Identify plants by textual details or particular requests.
+- **Personalized Gardening Tips**: Receive personalized suggestions for care from local weather to plant varieties.
+- **Pest and Disease Management**: Recommendation for dealing with common gardening issues.
+- **Seasonal Suggestions**: Suggestions specific to the planting season and climate.
+- **Weather Integration**: Current weather information integrated for context-aware suggestions.
+---
 
-@app.route("/")
-def home():
-    return render_template("index.html")
+## **Requirements**
 
-@app.route('/chat', methods=['POST'])
-def chat():
-    data = request.get_json()
-    user_question = data.get("question", "").lower()
+The following are the requirements to execute the AI Gardening Chatbot:
+- **Python 3.x**
 
-    # Check if the question is related to gardening
-    if not any(keyword in user_question for keyword in gardening_keywords):
-        return jsonify({"response": "🌿 This chatbot only answers gardening-related questions!"})
+- **Required Libraries**:
+  - **Flask** (for chatbot backend development)
+  - **NLTK** or **spaCy** (for natural language processing)
+  - **Requests** (for retrieving real-time weather data)
+---
 
-    # Use the AI model to generate a meaningful answer from the gardening context
-    response = qa_pipeline(question=user_question, context=gardening_context)
+## **How to Run**
 
-    return jsonify({"response": response["answer"]})
+1. Clone or download the project.
+2. Go to the project directory.
+3. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. Execute the chatbot application with:
+   ```bash
+   python gardening_chatbot.py
+   ```
+---
 
-if __name__ == "__main__":
-    app.run(debug=True)
+## **Usage Instructions**
+
+- Open the chatbot interface in your browser (typically hosted on `http://localhost:5000`).
+- Ask questions such as:
+  - "How do I take care of a basil plant?"
+- "What vegetables can I grow in April?"
+  - "How do I eliminate aphids?"
+- Have live advice and suggestions.
+---
+
+
+## **Output**
+
+- Users are immediately responded to via the chatbot interface.
+- Suggestions are specific to user questions and regional conditions.
+- Visuals, charts, or further information may be presented, if relevant.
+---
+

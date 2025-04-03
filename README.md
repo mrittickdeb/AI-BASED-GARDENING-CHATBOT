@@ -1,5 +1,4 @@
----
-# AI Gardening Chatbot
+
 
 **AI Gardening Chatbot** is a project that seeks to create an accessible platform that advises gardening enthusiasts real-time, including plant care, gardening tips, and natural language processing and machine learning-based approach.
 

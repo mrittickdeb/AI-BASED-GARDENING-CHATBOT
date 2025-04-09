@@ -1,0 +1,20 @@
+gardening_keywords = [
+    "gardening",
+    "roses",
+    "vegetable gardens",
+    "fruit trees",
+    "composting",
+    "crop rotation",
+    "tomatoes",
+    "carrots",
+    "lettuce",
+    "cucumbers",
+    "potted plants",
+    "mulching",
+    "organic fertilizers",
+    "pollinators",
+    "indoor plants",
+    "hydroponic gardening",
+    "raised beds",
+    "drip irrigation"
+]

@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🌿 Gardening Chatbot</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
+  <style>
+    :root {
+      --primary: #4CAF50;
+      --primary-light: #81c784;
+      --primary-dark: #388e3c;
+      --text-light: #333;
+      --text-dark: #e0e0e0;
+      --bg-light: #f9f9f9;
+      --bg-dark: #1e1e1e;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      overflow-x: hidden;
+      color: var(--text-light);
+    }
+
+    #threejs-background {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+    }
+
+    .dark-mode #threejs-background {
+      filter: brightness(0.6);
+    }
+
+    .chat-window {
+      max-width: 600px;
+      margin: 40px auto;
+      border-radius: 15px;
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+      transform-style: preserve-3d;
+      transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      backdrop-filter: blur(5px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .chat-window:hover {
+      transform: perspective(1000px) rotateX(2deg) rotateY(2deg) translateY(-5px);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+    }
+
+    .dark-mode .chat-window {
+      background: rgba(30, 30, 30, 0.9);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-dark);
+    }
+
+    .chat-header {
+      background-color: var(--primary);
+      color: white;
+      padding: 18px;
+      font-size: 22px;
+      font-weight: bold;
+      text-align: center;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+      letter-spacing: 1px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .chat-header::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(90deg, 
+        rgba(255,255,255,0) 0%, 
+        rgba(255,255,255,0.3) 50%, 
+        rgba(255,255,255,0) 100%);
+      animation: shine 3s infinite;
+    }
+
+    @keyframes shine {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    .chat-box {
+      max-height: 400px;
+      height: 400px;
+      overflow-y: auto;
+      padding: 20px;
+      background-color: rgba(236, 253, 245, 0.8);
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      transition: background-color 0.3s;
+    }
+
+    .dark-mode .chat-box {
+      background-color: rgba(42, 42, 42, 0.8);
+    }
+
+    .message {
+      max-width: 80%;
+      padding: 12px 18px;
+      border-radius: 20px;
+      line-height: 1.5;
+      font-size: 16px;
+      display: inline-block;
+      word-wrap: break-word;
+      position: relative;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      transition: all 0.3s ease;
+      transform-origin: bottom;
+      animation: messageAppear 0.3s ease-out;
+    }
+
+    @keyframes messageAppear {
+      from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .message:hover {
+      transform: scale(1.02);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+
+    .user {
+      align-self: flex-end;
+      background-color: #c8e6c9;
+      color: #1b5e20;
+      border-bottom-right-radius: 5px;
+    }
+
+    .bot {
+      align-self: flex-start;
+      background-color: #dcedc8;
+      color: #33691e;
+      border-bottom-left-radius: 5px;
+    }
+
+    .dark-mode .user {
+      background-color: #33691e;
+      color: #e0f2f1;
+    }
+
+    .dark-mode .bot {
+      background-color: #558b2f;
+      color: #fff;
+    }
+
+    .chat-input {
+      display: flex;
+      padding: 15px;
+      border-top: 1px solid rgba(0,0,0,0.1);
+      background-color: rgba(249, 249, 249, 0.8);
+      transition: all 0.3s;
+    }
+
+    .dark-mode .chat-input {
+      background-color: rgba(30, 30, 30, 0.8);
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+
+    input[type="text"] {
+      flex-grow: 1;
+      padding: 12px 18px;
+      border-radius: 25px;
+      border: 2px solid rgba(76, 175, 80, 0.3);
+      outline: none;
+      font-size: 16px;
+      transition: all 0.3s;
+      background-color: rgba(255,255,255,0.9);
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
+    }
+
+    .dark-mode input[type="text"] {
+      background-color: rgba(50, 50, 50, 0.9);
+      color: var(--text-dark);
+      border-color: rgba(76, 175, 80, 0.5);
+    }
+
+    button {
+      margin-left: 12px;
+      padding: 12px 24px;
+      border-radius: 25px;
+      border: none;
+      background-color: var(--primary);
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-size: 16px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    button:hover {
+      background-color: var(--primary-dark);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    button:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 3px rgba(0,0,0,0.1);
+    }
+
+    button::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 5px;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.5);
+      opacity: 0;
+      border-radius: 100%;
+      transform: scale(1, 1) translate(-50%);
+      transform-origin: 50% 50%;
+    }
+
+    button:focus:not(:active)::after {
+      animation: ripple 0.6s ease-out;
+    }
+
+    @keyframes ripple {
+      0% {
+        transform: scale(0, 0);
+        opacity: 0.5;
+      }
+      100% {
+        transform: scale(20, 20);
+        opacity: 0;
+      }
+    }
+
+    #darkToggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background-color: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(5px);
+      border: none;
+      cursor: pointer;
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      transition: all 0.3s;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    #darkToggle:hover {
+      transform: scale(1.1) rotate(15deg);
+      background-color: rgba(255, 255, 255, 0.3);
+    }
+
+    img.bot-image {
+      margin-top: 10px;
+      max-width: 100%;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      transition: all 0.3s;
+    }
+
+    img.bot-image:hover {
+      transform: scale(1.02);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    .timestamp {
+      font-size: 12px;
+      margin-top: 6px;
+      opacity: 0.7;
+      text-align: right;
+    }
+
+    .typing {
+      font-style: italic;
+      color: #666;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .typing-dots {
+      display: flex;
+      gap: 3px;
+    }
+
+    .typing-dot {
+      width: 8px;
+      height: 8px;
+      background-color: #666;
+      border-radius: 50%;
+      animation: typingAnimation 1.4s infinite ease-in-out;
+    }
+
+    .typing-dot:nth-child(1) { animation-delay: 0s; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typingAnimation {
+      0%, 60%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-5px); }
+    }
+
+    .export-btn {
+      text-align: center;
+      margin: 15px;
+    }
+
+    .export-btn button {
+      background-color: #607d8b;
+    }
+
+    .export-btn button:hover {
+      background-color: #455a64;
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: rgba(0,0,0,0.05);
+      border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(76, 175, 80, 0.5);
+      border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(76, 175, 80, 0.7);
+    }
+
+    .dark-mode ::-webkit-scrollbar-track {
+      background: rgba(255,255,255,0.05);
+    }
+
+    .dark-mode ::-webkit-scrollbar-thumb {
+      background: rgba(76, 175, 80, 0.7);
+    }
+
+    .dark-mode ::-webkit-scrollbar-thumb:hover {
+      background: rgba(76, 175, 80, 0.9);
+    }
+  </style>
+</head>
+<body>
+  <div id="threejs-background"></div>
+  <button id="darkToggle" title="Toggle dark mode">🌙</button>
+
+  <div class="chat-window">
+    <div class="chat-header">🌿 Gardening AI Chatbot</div>
+    <div class="chat-box" id="chatBox"></div>
+    <div class="chat-input">
+      <input type="text" id="userQuestion" placeholder="Ask a gardening question..." />
+      <button onclick="getResponse()">Ask</button>
+    </div>
+    <div class="export-btn">
+      <button onclick="exportChatToPDF()">📄 Export Chat</button>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script>
+    // Three.js 3D Garden Background
+    function initThreeJSBackground() {
+      const container = document.getElementById('threejs-background');
+      
+      // Scene
+      const scene = new THREE.Scene();
+      
+      // Camera
+      const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.z = 5;
+      
+      // Renderer
+      const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setClearColor(0x000000, 0);
+      container.appendChild(renderer.domElement);
+      
+      // Lights - Sunlight effect
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+      scene.add(ambientLight);
+      
+      const directionalLight = new THREE.DirectionalLight(0xfff9c4, 0.8);
+      directionalLight.position.set(1, 1, 1);
+      scene.add(directionalLight);
+      
+      const hemisphereLight = new THREE.HemisphereLight(0xffffbb, 0x080820, 0.5);
+      scene.add(hemisphereLight);
+      
+      // Create flowers and plants
+      const flowerColors = [
+        0xff69b4, 0xff1493, 0xda70d6, 0x9370db, 0x8a2be2, // Pink/purple flowers
+        0xff6347, 0xff4500, 0xff8c00, // Orange flowers
+        0xffd700, 0xffff00, 0xdaa520, // Yellow flowers
+        0x98fb98, 0x90ee90, 0x3cb371, // Green plants
+      ];
+      
+      const flowers = [];
+      const flowerCount = 30;
+      
+      for (let i = 0; i < flowerCount; i++) {
+        const flower = createFlower(flowerColors);
+        flower.position.x = (Math.random() - 0.5) * 20;
+        flower.position.y = (Math.random() - 0.5) * 10;
+        flower.position.z = (Math.random() - 0.5) * 10;
+        flower.rotation.x = Math.random() * Math.PI;
+        flower.rotation.y = Math.random() * Math.PI;
+        flower.scale.setScalar(0.2 + Math.random() * 0.3);
+        scene.add(flower);
+        flowers.push(flower);
+      }
+      
+      // Create grass/ground plane
+      const groundGeometry = new THREE.PlaneGeometry(20, 20, 10, 10);
+      const groundMaterial = new THREE.MeshStandardMaterial({ 
+        color: 0x4CAF50,
+        side: THREE.DoubleSide,
+        roughness: 0.8,
+        metalness: 0.2
+      });
+      const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+      ground.rotation.x = -Math.PI / 2;
+      ground.position.y = -2;
+      scene.add(ground);
+      
+      // Add some leaves/particles
+      const particles = 500;
+      const particlesGeometry = new THREE.BufferGeometry();
+      const posArray = new Float32Array(particles * 3);
+      
+      for (let i = 0; i < particles * 3; i++) {
+        posArray[i] = (Math.random() - 0.5) * 10;
+      }
+      
+      particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+      
+      const particlesMaterial = new THREE.PointsMaterial({
+        size: 0.05,
+        color: 0x4CAF50,
+        transparent: true,
+        opacity: 0.8
+      });
+      
+      const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
+      particlesMesh.position.y = -1;
+      scene.add(particlesMesh);
+      
+      // Animation loop
+      function animate() {
+        requestAnimationFrame(animate);
+        
+        // Animate flowers
+        flowers.forEach(flower => {
+          flower.rotation.y += 0.005;
+          flower.position.y += Math.sin(Date.now() * 0.001 + flower.position.x) * 0.001;
+        });
+        
+        // Animate particles (leaves)
+        particlesMesh.rotation.y += 0.001;
+        
+        // Make sunlight move slightly
+        directionalLight.position.x = Math.sin(Date.now() * 0.001) * 2;
+        directionalLight.position.y = Math.cos(Date.now() * 0.001) * 2;
+        
+        renderer.render(scene, camera);
+      }
+      
+      animate();
+      
+      // Handle window resize
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    }
+    
+    function createFlower(colors) {
+      const group = new THREE.Group();
+      
+      // Stem
+      const stemGeometry = new THREE.CylinderGeometry(0.05, 0.05, 1, 8);
+      const stemMaterial = new THREE.MeshStandardMaterial({ color: 0x4CAF50 });
+      const stem = new THREE.Mesh(stemGeometry, stemMaterial);
+      stem.position.y = 0.5;
+      group.add(stem);
+      
+      // Leaves
+      const leafGeometry = new THREE.SphereGeometry(0.2, 8, 8);
+      const leafMaterial = new THREE.MeshStandardMaterial({ color: 0x8bc34a });
+      
+      const leaf1 = new THREE.Mesh(leafGeometry, leafMaterial);
+      leaf1.position.set(0.3, 0.3, 0);
+      leaf1.scale.set(0.5, 0.2, 0.5);
+      group.add(leaf1);
+      
+      const leaf2 = new THREE.Mesh(leafGeometry, leafMaterial);
+      leaf2.position.set(-0.3, 0.3, 0);
+      leaf2.scale.set(0.5, 0.2, 0.5);
+      group.add(leaf2);
+      
+      // Flower head
+      const flowerColor = colors[Math.floor(Math.random() * colors.length)];
+      const petalsGeometry = new THREE.SphereGeometry(0.3, 8, 8);
+      const petalsMaterial = new THREE.MeshStandardMaterial({ 
+        color: flowerColor,
+        roughness: 0.5,
+        metalness: 0.1
+      });
+      
+      const petals = new THREE.Mesh(petalsGeometry, petalsMaterial);
+      petals.position.y = 1;
+      group.add(petals);
+      
+      // Flower center
+      const centerGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+      const centerMaterial = new THREE.MeshStandardMaterial({ 
+        color: 0xffeb3b,
+        roughness: 0.3,
+        metalness: 0.5
+      });
+      
+      const center = new THREE.Mesh(centerGeometry, centerMaterial);
+      center.position.y = 1;
+      group.add(center);
+      
+      return group;
+    }
+    
+    // Initialize 3D background when DOM is loaded
+    document.addEventListener('DOMContentLoaded', initThreeJSBackground);
+
+    const chatBox = document.getElementById("chatBox");
+
+    function getTimestamp() {
+      const now = new Date();
+      return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function addMessage(text, sender, imgSrc = null) {
+      const msg = document.createElement("div");
+      msg.className = `message ${sender}`;
+
+      const avatar = sender === "user"
+        ? `<img src="https://cdn-icons-png.flaticon.com/512/4333/4333609.png" alt="User Avatar" style="width:30px;height:30px;border-radius:50%;margin-right:10px;">`
+        : `<img src="https://cdn-icons-png.flaticon.com/512/4712/4712109.png" alt="Bot Avatar" style="width:30px;height:30px;border-radius:50%;margin-right:10px;">`;
+
+      msg.innerHTML = `
+        <div style="display: flex; align-items: flex-start;">
+          ${avatar}
+          <div>
+            <div>${text}</div>
+            ${imgSrc ? `<img class="bot-image" src="${imgSrc}" alt="gardening image">` : ""}
+            <div class="timestamp">${getTimestamp()}</div>
+          </div>
+        </div>
+      `;
+      chatBox.appendChild(msg);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function showTypingIndicator() {
+      const typing = document.createElement("div");
+      typing.id = "typing-indicator";
+      typing.className = "message bot";
+      typing.innerHTML = `
+        <div style="display: flex; align-items: flex-start;">
+          <img src="https://cdn-icons-png.flaticon.com/512/4712/4712109.png" alt="Bot Avatar" style="width:30px;height:30px;border-radius:50%;margin-right:10px;">
+          <div>
+            <div class="typing">
+              <span>🌿 Gardening Bot is typing</span>
+              <div class="typing-dots">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      chatBox.appendChild(typing);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function hideTypingIndicator() {
+      const typing = document.getElementById("typing-indicator");
+      if (typing) typing.remove();
+    }
+
+    function typeResponse(text, sender, img = null) {
+      hideTypingIndicator();
+
+      let index = 0;
+      const speed = 20;
+      const msg = document.createElement("div");
+      msg.className = `message ${sender}`;
+
+      const avatar = sender === "user"
+        ? `<img src="https://cdn-icons-png.flaticon.com/512/4333/4333609.png" alt="User Avatar" style="width:30px;height:30px;border-radius:50%;margin-right:10px;">`
+        : `<img src="https://cdn-icons-png.flaticon.com/512/4712/4712109.png" alt="Bot Avatar" style="width:30px;height:30px;border-radius:50%;margin-right:10px;">`;
+
+      const container = document.createElement("div");
+      container.style.display = "flex";
+      container.style.alignItems = "flex-start";
+
+      const content = document.createElement("div");
+      msg.appendChild(container);
+      container.innerHTML = avatar;
+      container.appendChild(content);
+      chatBox.appendChild(msg);
+
+      const interval = setInterval(() => {
+        if (index <= text.length) {
+          content.innerHTML = `<div>${text.slice(0, index)}</div>` +
+            (img ? `<img class='bot-image' src='${img}' alt='gardening image'>` : "") +
+            `<div class='timestamp'>${getTimestamp()}</div>`;
+          index++;
+        } else {
+          clearInterval(interval);
+        }
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }, speed);
+    }
+
+    async function getResponse() {
+      const input = document.getElementById("userQuestion");
+      const question = input.value.trim();
+      if (!question) return;
+
+      addMessage(question, "user");
+      input.value = "";
+
+      showTypingIndicator();
+
+      try {
+        const res = await fetch("/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question })
+        });
+
+        const data = await res.json();
+        const answer = data.response || "I'm not sure how to answer that!";
+        const image = data.image || null;
+
+        // Add slight delay for more natural feel
+        setTimeout(() => {
+          typeResponse("🌱 " + answer, "bot", image);
+        }, 800);
+      } catch (error) {
+        hideTypingIndicator();
+        addMessage("⚠️ Sorry, there was an error processing your request. Please try again.", "bot");
+      }
+    }
+
+    function exportChatToPDF() {
+      const element = document.getElementById("chatBox");
+      const opt = {
+        margin: 0.5,
+        filename: 'gardening_chat.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+      };
+      
+      // Show loading state
+      const exportBtn = document.querySelector('.export-btn button');
+      const originalText = exportBtn.textContent;
+      exportBtn.innerHTML = '⏳ Exporting...';
+      exportBtn.disabled = true;
+      
+      html2pdf().set(opt).from(element).save().then(() => {
+        exportBtn.textContent = originalText;
+        exportBtn.disabled = false;
+      });
+    }
+
+    const toggle = document.getElementById("darkToggle");
+    toggle.addEventListener("click", () => {
+      document.body.classList.toggle("dark-mode");
+      toggle.textContent = document.body.classList.contains("dark-mode") ? "☀️" : "🌙";
+    });
+
+    // Allow pressing Enter to send message
+    document.getElementById("userQuestion").addEventListener("keypress", function(e) {
+      if (e.key === "Enter") {
+        getResponse();
+      }
+    });
+  </script>
+</body>
+</html>
